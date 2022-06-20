@@ -1,0 +1,17 @@
+[package]
+name = "viemo-todo"
+version = "0.1.0"
+authors = ["Roland Schermer <roland0507@gmail.com>"]
+edition = "2021"
+license = "MIT"
+publish = false
+
+[dependencies]
+arwa = { version = "0.1.0", path = "../../../rudo/arwa" }
+atomic-counter = "1.0.1"
+futures = "0.3.21"
+guise = { version = "0.1.0", path = "../../guise" }
+idmap = "0.2.21"
+lazy_static = "1.4.0"
+viemo = { path = "../../../viemo" }
+wasm-bindgen = "0.2.81"

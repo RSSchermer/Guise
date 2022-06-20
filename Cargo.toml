@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "examples/counter",
+    "examples/viemo_todomvc",
+    "guise",
+    "guise_macro"
+]
