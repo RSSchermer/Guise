@@ -1,6 +1,9 @@
 use crate::vdom::ElementBuilder;
 use arwa::event::EventTarget;
 use arwa::html::*;
+use arwa::ui::*;
+use futures::Sink;
+use std::fmt::Debug;
 
 macro_rules! known_element_fn {
     ($fn_name:ident, $element:ident) => {
@@ -126,4 +129,63 @@ pub trait ChildKnownElementExt: child_known_element_ext_seal::Seal {
     known_element_fn!(child_summary, HtmlSummaryElement);
     known_element_fn!(child_slot, HtmlSlotElement);
     known_element_fn!(child_template, HtmlTemplateElement);
+}
+
+macro_rules! ui_event_sink_fn {
+    ($fn_name:ident, $event:ident) => {
+        fn $fn_name<S>(&mut self, sink: S)
+        where
+            E: EventTarget + 'static,
+            S: Sink<$event<E>> + 'static,
+            S::Error: Debug,
+        {
+            sink_ui_event_ext_seal::Seal::sink_event(self, sink);
+        }
+    };
+}
+
+pub(crate) mod sink_ui_event_ext_seal {
+    use arwa::event::{EventTarget, TypedEvent};
+    use futures::Sink;
+    use std::fmt::Debug;
+
+    pub trait Seal<E> {
+        fn sink_event<T, S>(&mut self, sink: S)
+        where
+            E: EventTarget,
+            T: TypedEvent<CurrentTarget = E> + 'static,
+            S: Sink<T> + 'static,
+            S::Error: Debug;
+    }
+}
+
+pub trait SinkUIEventExt<E>: sink_ui_event_ext_seal::Seal<E> {
+    ui_event_sink_fn!(sink_input, InputEvent);
+    ui_event_sink_fn!(sink_before_input, BeforeInputEvent);
+    ui_event_sink_fn!(sink_focus_in, FocusInEvent);
+    ui_event_sink_fn!(sink_focus_out, FocusOutEvent);
+    ui_event_sink_fn!(sink_click, ClickEvent);
+    ui_event_sink_fn!(sink_dbl_click, DblClickEvent);
+    ui_event_sink_fn!(sink_aux_click, AuxClickEvent);
+    ui_event_sink_fn!(sink_context_menu, ContextMenuEvent);
+    ui_event_sink_fn!(sink_pointer_cancel, PointerCancelEvent);
+    ui_event_sink_fn!(sink_pointer_down, PointerDownEvent);
+    ui_event_sink_fn!(sink_pointer_move, PointerMoveEvent);
+    ui_event_sink_fn!(sink_pointer_up, PointerUpEvent);
+    ui_event_sink_fn!(sink_pointer_out, PointerOutEvent);
+    ui_event_sink_fn!(sink_pointer_over, PointerOverEvent);
+    ui_event_sink_fn!(sink_pointer_enter, PointerEnterEvent);
+    ui_event_sink_fn!(sink_pointer_leave, PointerLeaveEvent);
+    ui_event_sink_fn!(sink_got_pointer_capture, GotPointerCaptureEvent);
+    ui_event_sink_fn!(sink_lost_pointer_capture, LostPointerCaptureEvent);
+    ui_event_sink_fn!(sink_drag, DragEvent);
+    ui_event_sink_fn!(sink_drag_end, DragEndEvent);
+    ui_event_sink_fn!(sink_drag_enter, DragEnterEvent);
+    ui_event_sink_fn!(sink_drag_leave, DragLeaveEvent);
+    ui_event_sink_fn!(sink_drag_over, DragOverEvent);
+    ui_event_sink_fn!(sink_drag_start, DragStartEvent);
+    ui_event_sink_fn!(sink_drop, DropEvent);
+    ui_event_sink_fn!(sink_key_down, KeyDownEvent);
+    ui_event_sink_fn!(sink_key_up, KeyUpEvent);
+    ui_event_sink_fn!(sink_wheel, WheelEvent);
 }

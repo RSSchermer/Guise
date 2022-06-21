@@ -1,14 +1,12 @@
 use std::str::FromStr;
 
-use arwa::dom::{name, DynamicElement};
-use arwa::html::{custom_element_name, GenericExtendableElement, HtmlButtonElement};
+use arwa::html::{custom_element_name, GenericExtendableElement};
 use arwa::spawn_local;
-use arwa::ui::ClickEvent;
 use arwa::window::window;
 use futures::StreamExt;
+use guise::vdom_ext::*;
 use guise::view_model::ViewModel;
 use guise::{Listener, VDom};
-use guise::vdom_ext::*;
 
 #[derive(guise::Attributes, Clone, Default)]
 struct CounterAttributes {
@@ -46,7 +44,7 @@ fn main() {
             let click_listener = {
                 let updater = view_model.updater();
 
-                Listener::new(move |_: ClickEvent<HtmlButtonElement>| {
+                Listener::new(move |_| {
                     updater.update(|count| *count += 1).unwrap();
                 })
             };
@@ -56,7 +54,7 @@ fn main() {
 
                 vdom.text(&count.to_string());
                 vdom.child_button(|mut e| {
-                    e.sink_event(click_listener.clone());
+                    e.sink_click(click_listener.clone());
                     e.text("Increment!")
                 });
 

@@ -1,10 +1,8 @@
 use arwa::dom::name;
 use arwa::event::Event;
-use arwa::html::{
-    custom_element_name, GenericExtendableElement, HtmlButtonElement, HtmlInputElement,
-};
+use arwa::html::{custom_element_name, GenericExtendableElement, HtmlInputElement};
 use arwa::spawn_local;
-use arwa::ui::{ClickEvent, InputEvent, KeyDownEvent, KeyboardEvent};
+use arwa::ui::{InputEvent, KeyDownEvent, KeyboardEvent};
 use atomic_counter::AtomicCounter;
 use futures::{Stream, StreamExt};
 use guise::vdom_ext::*;
@@ -160,7 +158,7 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
     let change_filter_mode_all_listener = {
         let updater = view_model.updater();
 
-        Listener::new(move |_: ClickEvent<HtmlButtonElement>| {
+        Listener::new(move |_| {
             updater
                 .update(|component| component.filter_mode = FilterMode::All)
                 .unwrap();
@@ -170,7 +168,7 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
     let change_filter_mode_active_listener = {
         let updater = view_model.updater();
 
-        Listener::new(move |_: ClickEvent<HtmlButtonElement>| {
+        Listener::new(move |_| {
             updater
                 .update(|component| component.filter_mode = FilterMode::Active)
                 .unwrap();
@@ -180,14 +178,14 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
     let change_filter_mode_completed_listener = {
         let updater = view_model.updater();
 
-        Listener::new(move |_: ClickEvent<HtmlButtonElement>| {
+        Listener::new(move |_| {
             updater
                 .update(|component| component.filter_mode = FilterMode::Completed)
                 .unwrap();
         })
     };
 
-    let clear_completed_listener = Listener::new(move |_: ClickEvent<HtmlButtonElement>| {
+    let clear_completed_listener = Listener::new(move |_| {
         APP_DATA.update(|app, cx| {
             let mut todos = app.todos.borrow_mut(cx);
 
@@ -215,7 +213,7 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
                     input.attr(name!("class"), "new-todo");
                     input.attr(name!("placeholder"), "What needs to be done?");
                     input.boolean_attr(name!("autofocus"));
-                    input.sink_event(new_todo_listener.clone());
+                    input.sink_key_down(new_todo_listener.clone());
                 })
             });
 
@@ -232,7 +230,7 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
                             e.boolean_attr(name!("checked"));
                         }
 
-                        e.sink_event(check_toggle_all_listener.clone());
+                        e.sink_input(check_toggle_all_listener.clone());
                     });
 
                     e.child_label(|mut e| {
@@ -283,7 +281,7 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
                                 if component.filter_mode == FilterMode::All {
                                     e.attr(name!("class"), "selected");
                                 } else {
-                                    e.sink_event(change_filter_mode_all_listener.clone());
+                                    e.sink_click(change_filter_mode_all_listener.clone());
                                 }
 
                                 e.text("All");
@@ -295,7 +293,7 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
                                 if component.filter_mode == FilterMode::Active {
                                     e.attr(name!("class"), "selected");
                                 } else {
-                                    e.sink_event(change_filter_mode_active_listener.clone());
+                                    e.sink_click(change_filter_mode_active_listener.clone());
                                 }
 
                                 e.text("Active");
@@ -307,7 +305,7 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
                                 if component.filter_mode == FilterMode::Completed {
                                     e.attr(name!("class"), "selected");
                                 } else {
-                                    e.sink_event(change_filter_mode_completed_listener.clone());
+                                    e.sink_click(change_filter_mode_completed_listener.clone());
                                 }
 
                                 e.text("Complete");
@@ -321,7 +319,7 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
 
                             e.text("Clear completed");
 
-                            e.sink_event(clear_completed_listener.clone());
+                            e.sink_click(clear_completed_listener.clone());
                         });
                     }
                 });

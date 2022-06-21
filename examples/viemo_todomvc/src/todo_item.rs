@@ -2,13 +2,13 @@ use std::str::FromStr;
 
 use arwa::dom::{name, SelectionDirection};
 use arwa::event::Event;
-use arwa::html::{HtmlElement, HtmlInputElement, HtmlLiElement, HtmlLabelElement, HtmlButtonElement};
+use arwa::html::{HtmlElement, HtmlInputElement, HtmlLiElement};
 use arwa::spawn_local;
-use arwa::ui::{ClickEvent, DblClickEvent, FocusOutEvent, InputEvent, KeyDownEvent, KeyboardEvent};
+use arwa::ui::{FocusOutEvent, InputEvent, KeyDownEvent, KeyboardEvent};
 use futures::{Stream, StreamExt as BaseStreamExt};
 use guise::flatten_abridged::StreamExt as FlattenAbridgedStreamExt;
-use guise::view_model::ViewModel;
 use guise::vdom_ext::*;
+use guise::view_model::ViewModel;
 use guise::{AttributesChanged, ElementRef, Listener, VDom};
 use viemo::memo::OptionCellMemo;
 use viemo::watcher::Watcher;
@@ -103,7 +103,7 @@ pub fn init(
         });
 
         let check_complete_listener = Listener::new(move |e: InputEvent<HtmlInputElement>| {
-            let input  = e.current_target().unwrap();
+            let input = e.current_target().unwrap();
 
             APP_DATA.update(|app, cx| {
                 let todos = app.todos.borrow(cx);
@@ -119,7 +119,7 @@ pub fn init(
         let enter_edit_mode_listener = Listener::new({
             let updater = view_model.updater();
 
-            move |_: DblClickEvent<HtmlLabelElement>| {
+            move |_| {
                 updater
                     .update(|component| {
                         component.edit_mode = true;
@@ -128,7 +128,7 @@ pub fn init(
             }
         });
 
-        let destroy_listener = Listener::new(move |_: ClickEvent<HtmlButtonElement>| {
+        let destroy_listener = Listener::new(move |_| {
             APP_DATA.update(|app, cx| {
                 let mut todos = app.todos.borrow_mut(cx);
 
@@ -159,8 +159,8 @@ pub fn init(
                         e.boolean_attr(name!("autofocus"));
                         e.attr(name!("value"), &component.note);
 
-                        e.sink_event(save_enter_listener.clone());
-                        e.sink_event(save_blur_listener.clone());
+                        e.sink_key_down(save_enter_listener.clone());
+                        e.sink_focus_out(save_blur_listener.clone());
 
                         // Attach an `ElementRef` to this element. When the VDom gets rendered, a
                         // reference to element associated with this VDom node will be stored
@@ -180,11 +180,11 @@ pub fn init(
                                 e.boolean_attr(name!("checked"));
                             }
 
-                            e.sink_event(check_complete_listener.clone());
+                            e.sink_input(check_complete_listener.clone());
                         });
 
                         e.child_label(|mut e| {
-                            e.sink_event(enter_edit_mode_listener.clone());
+                            e.sink_dbl_click(enter_edit_mode_listener.clone());
 
                             e.text(&component.note);
                         });
@@ -192,7 +192,7 @@ pub fn init(
                         e.child_button(|mut e| {
                             e.attr(name!("class"), "destroy");
 
-                            e.sink_event(destroy_listener.clone());
+                            e.sink_click(destroy_listener.clone());
                         });
                     })
                 }

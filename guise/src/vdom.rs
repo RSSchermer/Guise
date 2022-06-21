@@ -9,7 +9,9 @@ use futures::Sink;
 use ouroboros::self_referencing;
 
 use crate::sink_spawner::SinkSpawner;
-use crate::vdom_ext::{child_known_element_ext_seal, ChildKnownElementExt};
+use crate::vdom_ext::{
+    child_known_element_ext_seal, sink_ui_event_ext_seal, ChildKnownElementExt, SinkUIEventExt,
+};
 use crate::ElementRef;
 use std::marker;
 
@@ -204,6 +206,19 @@ impl<'a, 'b, E> ChildKnownElementExt for ElementBuilder<'a, 'b, E> {
         self.child_internal(T::TAG_NAME.clone(), None, f)
     }
 }
+
+impl<'a, 'b, E> sink_ui_event_ext_seal::Seal<E> for ElementBuilder<'a, 'b, E> {
+    fn sink_event<T, S>(&mut self, sink: S)
+    where
+        E: EventTarget,
+        T: TypedEvent<CurrentTarget = E> + 'static,
+        S: Sink<T> + 'static,
+        S::Error: Debug,
+    {
+        ElementBuilder::sink_event(self, sink);
+    }
+}
+impl<'a, 'b, E> SinkUIEventExt<E> for ElementBuilder<'a, 'b, E> {}
 
 pub(crate) enum Node<'a> {
     Text(&'a str),
