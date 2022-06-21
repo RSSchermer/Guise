@@ -1,13 +1,14 @@
 use std::str::FromStr;
 
-use arwa::dom::{name, DynamicElement, SelectionDirection};
+use arwa::dom::{name, SelectionDirection};
 use arwa::event::Event;
-use arwa::html::{HtmlElement, HtmlInputElement, HtmlLiElement};
+use arwa::html::{HtmlElement, HtmlInputElement, HtmlLiElement, HtmlLabelElement, HtmlButtonElement};
 use arwa::spawn_local;
 use arwa::ui::{ClickEvent, DblClickEvent, FocusOutEvent, InputEvent, KeyDownEvent, KeyboardEvent};
 use futures::{Stream, StreamExt as BaseStreamExt};
 use guise::flatten_abridged::StreamExt as FlattenAbridgedStreamExt;
 use guise::view_model::ViewModel;
+use guise::vdom_ext::*;
 use guise::{AttributesChanged, ElementRef, Listener, VDom};
 use viemo::memo::OptionCellMemo;
 use viemo::watcher::Watcher;
@@ -82,9 +83,9 @@ pub fn init(
         let save_enter_listener = Listener::new({
             let save = save.clone();
 
-            move |e: KeyDownEvent<DynamicElement>| {
+            move |e: KeyDownEvent<HtmlInputElement>| {
                 if &e.key() == "Enter" {
-                    let input: HtmlInputElement = e.current_target().unwrap().try_into().unwrap();
+                    let input = e.current_target().unwrap();
 
                     save(input.value());
                 }
@@ -94,15 +95,15 @@ pub fn init(
         let save_blur_listener = Listener::new({
             let save = save.clone();
 
-            move |e: FocusOutEvent<DynamicElement>| {
-                let input: HtmlInputElement = e.current_target().unwrap().try_into().unwrap();
+            move |e: FocusOutEvent<HtmlInputElement>| {
+                let input = e.current_target().unwrap();
 
                 save(input.value());
             }
         });
 
-        let check_complete_listener = Listener::new(move |e: InputEvent<DynamicElement>| {
-            let input: HtmlInputElement = e.current_target().unwrap().try_into().unwrap();
+        let check_complete_listener = Listener::new(move |e: InputEvent<HtmlInputElement>| {
+            let input  = e.current_target().unwrap();
 
             APP_DATA.update(|app, cx| {
                 let todos = app.todos.borrow(cx);
@@ -118,7 +119,7 @@ pub fn init(
         let enter_edit_mode_listener = Listener::new({
             let updater = view_model.updater();
 
-            move |_: DblClickEvent<DynamicElement>| {
+            move |_: DblClickEvent<HtmlLabelElement>| {
                 updater
                     .update(|component| {
                         component.edit_mode = true;
@@ -127,7 +128,7 @@ pub fn init(
             }
         });
 
-        let destroy_listener = Listener::new(move |_: ClickEvent<DynamicElement>| {
+        let destroy_listener = Listener::new(move |_: ClickEvent<HtmlButtonElement>| {
             APP_DATA.update(|app, cx| {
                 let mut todos = app.todos.borrow_mut(cx);
 
@@ -138,7 +139,7 @@ pub fn init(
         view_model.rendered(move |component| {
             let mut vdom = VDom::new();
 
-            vdom.element(name!("div"), |mut container| {
+            vdom.child_div(|mut e| {
                 let mut class = String::new();
 
                 if component.complete {
@@ -149,49 +150,49 @@ pub fn init(
                     class.push_str(" editing");
                 }
 
-                container.attribute(name!("class"), &class);
+                e.attr(name!("class"), &class);
 
                 if component.edit_mode {
-                    container.element(name!("input"), |mut note_input| {
-                        note_input.attribute(name!("type"), "text");
-                        note_input.attribute(name!("class"), "edit");
-                        note_input.boolean_attribute(name!("autofocus"));
-                        note_input.attribute(name!("value"), &component.note);
+                    e.child_input(|mut e| {
+                        e.attr(name!("type"), "text");
+                        e.attr(name!("class"), "edit");
+                        e.boolean_attr(name!("autofocus"));
+                        e.attr(name!("value"), &component.note);
 
-                        note_input.event_sink(save_enter_listener.clone());
-                        note_input.event_sink(save_blur_listener.clone());
+                        e.sink_event(save_enter_listener.clone());
+                        e.sink_event(save_blur_listener.clone());
 
                         // Attach an `ElementRef` to this element. When the VDom gets rendered, a
                         // reference to element associated with this VDom node will be stored
                         // inside the `ElementRef`. We'll use this on the VDom's `on_rendered`
                         // callback (see below) to set cursor inside this text input.
-                        note_input.element_ref(edit_ref.clone());
+                        e.element_ref(edit_ref.clone());
                     });
                 } else {
-                    container.element(name!("div"), |mut div| {
-                        div.attribute(name!("class"), "view");
+                    e.child_div(|mut e| {
+                        e.attr(name!("class"), "view");
 
-                        div.element(name!("input"), |mut checkbox| {
-                            checkbox.attribute(name!("type"), "checkbox");
-                            checkbox.attribute(name!("class"), "toggle");
+                        e.child_input(|mut e| {
+                            e.attr(name!("type"), "checkbox");
+                            e.attr(name!("class"), "toggle");
 
                             if component.complete {
-                                checkbox.boolean_attribute(name!("checked"));
+                                e.boolean_attr(name!("checked"));
                             }
 
-                            checkbox.event_sink(check_complete_listener.clone());
+                            e.sink_event(check_complete_listener.clone());
                         });
 
-                        div.element(name!("label"), |mut label| {
-                            label.event_sink(enter_edit_mode_listener.clone());
+                        e.child_label(|mut e| {
+                            e.sink_event(enter_edit_mode_listener.clone());
 
-                            label.text(&component.note);
+                            e.text(&component.note);
                         });
 
-                        div.element(name!("button"), |mut button| {
-                            button.attribute(name!("class"), "destroy");
+                        e.child_button(|mut e| {
+                            e.attr(name!("class"), "destroy");
 
-                            button.event_sink(destroy_listener.clone());
+                            e.sink_event(destroy_listener.clone());
                         });
                     })
                 }

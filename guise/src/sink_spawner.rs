@@ -24,15 +24,16 @@ pub(crate) struct SinkSpawner {
 }
 
 impl SinkSpawner {
-    pub(crate) fn new<T, S>(sink: S) -> Self
+    pub(crate) fn new<E, T, S>(sink: S) -> Self
     where
-        T: TypedEvent<CurrentTarget = DynamicElement> + 'static,
+        E: EventTarget,
+        T: TypedEvent<CurrentTarget = E> + 'static,
         S: Sink<T> + 'static,
         S::Error: Debug,
     {
         SinkSpawner {
             state: State::Unused(RawSink::new(sink)),
-            spawner: spawn::<T>,
+            spawner: spawn::<E, T>,
         }
     }
 
@@ -55,10 +56,15 @@ impl Drop for SinkSpawner {
     }
 }
 
-fn spawn<T: TypedEvent<CurrentTarget = DynamicElement> + 'static>(
+fn spawn<E: EventTarget, T: TypedEvent<CurrentTarget = E> + 'static>(
     target: &DynamicElement,
     sink: RawSink,
 ) -> AbortHandle {
+    // Safety: the actual concrete type of the DynamicElement does not matter to Arwa, it is only
+    // used to cast the `current_target` on events in the stream, which never leads to unsafety (at
+    // worst incorrectness). The concrete type of the DynamicElement should also always match `E`,
+    // this is internal to Guise.
+    let target: &E = unsafe { mem::transmute(target) };
     let stream = target.on_typed_event::<T>();
     let (abort_handle, registration) = AbortHandle::new_pair();
 

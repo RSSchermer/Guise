@@ -1,10 +1,13 @@
-use arwa::dom::{name, DynamicElement};
+use arwa::dom::name;
 use arwa::event::Event;
-use arwa::html::{custom_element_name, GenericExtendableElement, HtmlInputElement};
+use arwa::html::{
+    custom_element_name, GenericExtendableElement, HtmlButtonElement, HtmlInputElement,
+};
 use arwa::spawn_local;
 use arwa::ui::{ClickEvent, InputEvent, KeyDownEvent, KeyboardEvent};
 use atomic_counter::AtomicCounter;
 use futures::{Stream, StreamExt};
+use guise::vdom_ext::*;
 use guise::view_model::ViewModel;
 use guise::{AttributesChanged, Listener, VDom};
 use viemo::memo::OwnedMemo;
@@ -111,9 +114,9 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
         .for_each(async move |_| ())
     });
 
-    let new_todo_listener = Listener::new(|e: KeyDownEvent<DynamicElement>| {
+    let new_todo_listener = Listener::new(|e: KeyDownEvent<HtmlInputElement>| {
         if &e.key() == "Enter" {
-            let input: HtmlInputElement = e.current_target().unwrap().try_into().unwrap();
+            let input = e.current_target().unwrap();
             let value = input.value();
             let trimmed = value.trim();
 
@@ -138,8 +141,8 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
         }
     });
 
-    let check_toggle_all_listener = Listener::new(move |e: InputEvent<DynamicElement>| {
-        let input: HtmlInputElement = e.current_target().unwrap().try_into().unwrap();
+    let check_toggle_all_listener = Listener::new(move |e: InputEvent<HtmlInputElement>| {
+        let input = e.current_target().unwrap();
 
         let complete = input.checked();
 
@@ -157,7 +160,7 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
     let change_filter_mode_all_listener = {
         let updater = view_model.updater();
 
-        Listener::new(move |_: ClickEvent<DynamicElement>| {
+        Listener::new(move |_: ClickEvent<HtmlButtonElement>| {
             updater
                 .update(|component| component.filter_mode = FilterMode::All)
                 .unwrap();
@@ -167,7 +170,7 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
     let change_filter_mode_active_listener = {
         let updater = view_model.updater();
 
-        Listener::new(move |_: ClickEvent<DynamicElement>| {
+        Listener::new(move |_: ClickEvent<HtmlButtonElement>| {
             updater
                 .update(|component| component.filter_mode = FilterMode::Active)
                 .unwrap();
@@ -177,14 +180,14 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
     let change_filter_mode_completed_listener = {
         let updater = view_model.updater();
 
-        Listener::new(move |_: ClickEvent<DynamicElement>| {
+        Listener::new(move |_: ClickEvent<HtmlButtonElement>| {
             updater
                 .update(|component| component.filter_mode = FilterMode::Completed)
                 .unwrap();
         })
     };
 
-    let clear_completed_listener = Listener::new(move |_: ClickEvent<DynamicElement>| {
+    let clear_completed_listener = Listener::new(move |_: ClickEvent<HtmlButtonElement>| {
         APP_DATA.update(|app, cx| {
             let mut todos = app.todos.borrow_mut(cx);
 
@@ -199,68 +202,68 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
     view_model.rendered(move |component| {
         let mut vdom = VDom::new();
 
-        vdom.element(name!("div"), |mut container| {
-            container.attribute(name!("class"), "todoapp");
+        vdom.child_div(|mut e| {
+            e.attr(name!("class"), "todoapp");
 
-            container.element(name!("header"), |mut header| {
-                header.attribute(name!("class"), "header");
-                header.element(name!("h1"), |mut h1| {
+            e.child_header(|mut e| {
+                e.attr(name!("class"), "header");
+                e.child_h1(|mut h1| {
                     h1.text("todos");
                 });
-                header.element(name!("input"), |mut input| {
-                    input.attribute(name!("type"), "text");
-                    input.attribute(name!("class"), "new-todo");
-                    input.attribute(name!("placeholder"), "What needs to be done?");
-                    input.boolean_attribute(name!("autofocus"));
-                    input.event_sink(new_todo_listener.clone());
+                e.child_input(|mut input| {
+                    input.attr(name!("type"), "text");
+                    input.attr(name!("class"), "new-todo");
+                    input.attr(name!("placeholder"), "What needs to be done?");
+                    input.boolean_attr(name!("autofocus"));
+                    input.sink_event(new_todo_listener.clone());
                 })
             });
 
             if !component.is_empty() {
-                container.element(name!("section"), |mut main| {
-                    main.attribute(name!("class"), "main");
+                e.child_section(|mut e| {
+                    e.attr(name!("class"), "main");
 
-                    main.element(name!("input"), |mut input| {
-                        input.attribute(name!("type"), "checkbox");
-                        input.attribute(name!("id"), "toggle-all");
-                        input.attribute(name!("class"), "toggle-all");
+                    e.child_input(|mut e| {
+                        e.attr(name!("type"), "checkbox");
+                        e.attr(name!("id"), "toggle-all");
+                        e.attr(name!("class"), "toggle-all");
 
                         if component.all_completed() {
-                            input.boolean_attribute(name!("checked"));
+                            e.boolean_attr(name!("checked"));
                         }
 
-                        input.event_sink(check_toggle_all_listener.clone());
+                        e.sink_event(check_toggle_all_listener.clone());
                     });
 
-                    main.element(name!("label"), |mut label| {
-                        label.attribute(name!("for"), "toggle-all");
+                    e.child_label(|mut e| {
+                        e.attr(name!("for"), "toggle-all");
 
-                        label.text("Mark all as complete");
+                        e.text("Mark all as complete");
                     });
 
-                    main.element(name!("ul"), |mut list| {
-                        list.attribute(name!("class"), "todo-list");
+                    e.child_ul(|mut e| {
+                        e.attr(name!("class"), "todo-list");
 
                         for id in component.render_ids() {
-                            list.element_is(
+                            e.child_customized(
                                 name!("li"),
                                 custom_element_name!("todo-item"),
-                                |mut todo_item| {
-                                    todo_item.attribute(name!("todo-id"), &id.to_string());
+                                |mut e| {
+                                    e.attr(name!("todo-id"), &id.to_string());
                                 },
                             );
                         }
                     });
                 });
 
-                container.element(name!("footer"), |mut footer| {
-                    footer.attribute(name!("class"), "footer");
+                e.child_footer(|mut e| {
+                    e.attr(name!("class"), "footer");
 
-                    footer.element(name!("span"), |mut span| {
-                        span.attribute(name!("class"), "todo-count");
+                    e.child_span(|mut e| {
+                        e.attr(name!("class"), "todo-count");
 
-                        span.element(name!("strong"), |mut strong| {
-                            strong.text(&component.active_count().to_string());
+                        e.child_strong(|mut e| {
+                            e.text(&component.active_count().to_string());
                         });
 
                         let text = if component.active_count() == 1 {
@@ -269,57 +272,56 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
                             " items left"
                         };
 
-                        span.text(text);
+                        e.text(text);
                     });
 
-                    footer.element(name!("ul"), |mut ul| {
-                        ul.attribute(name!("class"), "filters");
+                    e.child_ul(|mut e| {
+                        e.attr(name!("class"), "filters");
 
-                        ul.element(name!("li"), |mut li| {
-                            li.element(name!("button"), |mut button| {
+                        e.child_li(|mut e| {
+                            e.child_button(|mut e| {
                                 if component.filter_mode == FilterMode::All {
-                                    button.attribute(name!("class"), "selected");
+                                    e.attr(name!("class"), "selected");
                                 } else {
-                                    button.event_sink(change_filter_mode_all_listener.clone());
+                                    e.sink_event(change_filter_mode_all_listener.clone());
                                 }
 
-                                button.text("All");
+                                e.text("All");
                             });
                         });
 
-                        ul.element(name!("li"), |mut li| {
-                            li.element(name!("button"), |mut button| {
+                        e.child_li(|mut e| {
+                            e.child_button(|mut e| {
                                 if component.filter_mode == FilterMode::Active {
-                                    button.attribute(name!("class"), "selected");
+                                    e.attr(name!("class"), "selected");
                                 } else {
-                                    button.event_sink(change_filter_mode_active_listener.clone());
+                                    e.sink_event(change_filter_mode_active_listener.clone());
                                 }
 
-                                button.text("Active");
+                                e.text("Active");
                             });
                         });
 
-                        ul.element(name!("li"), |mut li| {
-                            li.element(name!("button"), |mut button| {
+                        e.child_li(|mut e| {
+                            e.child_button(|mut e| {
                                 if component.filter_mode == FilterMode::Completed {
-                                    button.attribute(name!("class"), "selected");
+                                    e.attr(name!("class"), "selected");
                                 } else {
-                                    button
-                                        .event_sink(change_filter_mode_completed_listener.clone());
+                                    e.sink_event(change_filter_mode_completed_listener.clone());
                                 }
 
-                                button.text("Complete");
+                                e.text("Complete");
                             });
                         });
                     });
 
                     if component.any_completed() {
-                        footer.element(name!("button"), |mut button| {
-                            button.attribute(name!("class"), "clear-completed");
+                        e.child_button(|mut e| {
+                            e.attr(name!("class"), "clear-completed");
 
-                            button.text("Clear completed");
+                            e.text("Clear completed");
 
-                            button.event_sink(clear_completed_listener.clone());
+                            e.sink_event(clear_completed_listener.clone());
                         });
                     }
                 });

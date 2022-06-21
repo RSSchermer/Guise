@@ -10,6 +10,7 @@ mod sink_spawner;
 mod vdom;
 
 pub mod flatten_abridged;
+pub mod vdom_ext;
 pub mod view_model;
 
 use std::cell::RefCell;

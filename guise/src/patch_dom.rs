@@ -3,10 +3,10 @@ use crate::vdom::{Attribute, Element, Node, VDom};
 use crate::ElementRef;
 use arwa::collection::Sequence;
 use arwa::dom::{
-    CharacterData, ChildNode, Document, DynamicChildNode, DynamicDocument, DynamicElement,
-    Element as ArwaElement, Name, OwnedNode, ParentNode, Text,
+    CharacterData, ChildNode, Document, DynamicChildNode, DynamicElement, Element as ArwaElement,
+    Name, OwnedNode, ParentNode, Text,
 };
-use arwa::html::HtmlInputElement;
+use arwa::html::{HtmlDocument, HtmlInputElement};
 use std::cmp::min;
 use std::convert::TryFrom;
 
@@ -14,7 +14,10 @@ pub fn patch_dom<E>(container: &E, mut old: VDom, new: &mut VDom)
 where
     E: ArwaElement + ParentNode + OwnedNode,
 {
-    let document = container.owner_document();
+    let document: HtmlDocument = container
+        .owner_document()
+        .try_into()
+        .expect("Guise only supports HTML documents");
 
     old.with_nodes_mut(|old_nodes| {
         new.with_nodes_mut(|new_nodes| {
@@ -24,7 +27,7 @@ where
 }
 
 fn patch_node(
-    document: &DynamicDocument,
+    document: &HtmlDocument,
     node: &DynamicChildNode,
     old: &mut Node,
     mut new: &mut Node,
@@ -59,7 +62,7 @@ fn patch_node(
     replace_fresh(document, node, new);
 }
 
-fn patch_children<E>(document: &DynamicDocument, parent: &E, old: &mut [Node], new: &mut [Node])
+fn patch_children<E>(document: &HtmlDocument, parent: &E, old: &mut [Node], new: &mut [Node])
 where
     E: ArwaElement + ParentNode,
 {
@@ -160,7 +163,7 @@ fn patch_attributes(element: &DynamicElement, old: &[Attribute], new: &[Attribut
     }
 }
 
-fn append_fresh<E>(document: &DynamicDocument, parent: &E, node: &mut Node)
+fn append_fresh<E>(document: &HtmlDocument, parent: &E, node: &mut Node)
 where
     E: ParentNode,
 {
@@ -170,14 +173,14 @@ where
     }
 }
 
-fn replace_fresh(document: &DynamicDocument, target: &DynamicChildNode, node: &mut Node) {
+fn replace_fresh(document: &HtmlDocument, target: &DynamicChildNode, node: &mut Node) {
     match node {
         Node::Text(text) => target.replace_with(&document.create_text(text)),
         Node::Element(element) => target.replace_with(&fresh_element(document, element)),
     }
 }
 
-fn fresh_element(document: &DynamicDocument, element: &mut Element) -> DynamicElement {
+fn fresh_element(document: &HtmlDocument, element: &mut Element) -> DynamicElement {
     let e = if let Some(is) = element.is() {
         document.create_customized_element(element.tag_name(), is)
     } else {

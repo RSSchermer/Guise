@@ -1,15 +1,17 @@
 use std::fmt::Debug;
 
 use arwa::dom::{DynamicElement, Name};
-use arwa::event::TypedEvent;
-use arwa::html::CustomElementName;
+use arwa::event::{EventTarget, TypedEvent};
+use arwa::html::{CustomElementName, KnownElement};
 use bumpalo::collections::Vec as BumpVec;
 use bumpalo::Bump;
 use futures::Sink;
 use ouroboros::self_referencing;
 
 use crate::sink_spawner::SinkSpawner;
+use crate::vdom_ext::{child_known_element_ext_seal, ChildKnownElementExt};
 use crate::ElementRef;
+use std::marker;
 
 pub struct VDom {
     pub(crate) internal: VDomInternal,
@@ -34,9 +36,10 @@ impl VDom {
         });
     }
 
-    fn element_internal<F>(&mut self, tag_name: Name, is: Option<CustomElementName>, f: F)
+    fn child_internal<E, F>(&mut self, tag_name: Name, is: Option<CustomElementName>, f: F)
     where
-        F: FnOnce(ElementBuilder),
+        E: EventTarget,
+        F: FnOnce(ElementBuilder<E>),
     {
         self.internal.with_mut(|fields| {
             let tag_name = fields.alloc_ref.alloc(tag_name);
@@ -54,24 +57,25 @@ impl VDom {
             f(ElementBuilder {
                 alloc: fields.alloc_ref,
                 element: &mut element,
+                _marker: Default::default(),
             });
 
             fields.nodes.push(Node::Element(element))
         });
     }
 
-    pub fn element<F>(&mut self, tag_name: Name, f: F)
+    pub fn child<F>(&mut self, tag_name: Name, f: F)
     where
-        F: FnOnce(ElementBuilder),
+        F: FnOnce(ElementBuilder<DynamicElement>),
     {
-        self.element_internal(tag_name, None, f);
+        self.child_internal(tag_name, None, f);
     }
 
-    pub fn element_is<F>(&mut self, tag_name: Name, is: CustomElementName, f: F)
+    pub fn child_customized<F>(&mut self, tag_name: Name, is: CustomElementName, f: F)
     where
-        F: FnOnce(ElementBuilder),
+        F: FnOnce(ElementBuilder<DynamicElement>),
     {
-        self.element_internal(tag_name, Some(is), f);
+        self.child_internal(tag_name, Some(is), f);
     }
 
     pub fn on_rendered<F>(&mut self, f: F)
@@ -89,6 +93,17 @@ impl VDom {
     }
 }
 
+impl child_known_element_ext_seal::Seal for VDom {}
+impl ChildKnownElementExt for VDom {
+    fn child_known_element<T, F>(&mut self, f: F)
+    where
+        T: KnownElement + EventTarget,
+        F: FnOnce(ElementBuilder<T>),
+    {
+        self.child_internal(T::TAG_NAME.clone(), None, f)
+    }
+}
+
 #[self_referencing]
 pub struct VDomInternal {
     alloc: Bump,
@@ -99,20 +114,21 @@ pub struct VDomInternal {
     nodes: BumpVec<'this, Node<'this>>,
 }
 
-pub struct ElementBuilder<'a, 'b> {
+pub struct ElementBuilder<'a, 'b, E> {
     alloc: &'b Bump,
     element: &'a mut Element<'b>,
+    _marker: marker::PhantomData<E>,
 }
 
-impl<'a, 'b> ElementBuilder<'a, 'b> {
-    pub fn attribute(&mut self, name: Name, value: &str) {
+impl<'a, 'b, E> ElementBuilder<'a, 'b, E> {
+    pub fn attr(&mut self, name: Name, value: &str) {
         let name = self.alloc.alloc(name);
         let value = self.alloc.alloc_str(value);
 
         self.element.attributes.push(Attribute { name, value });
     }
 
-    pub fn boolean_attribute(&mut self, name: Name) {
+    pub fn boolean_attr(&mut self, name: Name) {
         let name = self.alloc.alloc(name);
 
         self.element.attributes.push(Attribute { name, value: "" });
@@ -124,9 +140,9 @@ impl<'a, 'b> ElementBuilder<'a, 'b> {
         self.element.children.push(Node::Text(text));
     }
 
-    fn element_internal<F>(&mut self, tag_name: Name, is: Option<CustomElementName>, f: F)
+    fn child_internal<T, F>(&mut self, tag_name: Name, is: Option<CustomElementName>, f: F)
     where
-        F: FnOnce(ElementBuilder),
+        F: FnOnce(ElementBuilder<T>),
     {
         let tag_name = self.alloc.alloc(tag_name);
         let is = is.map(|n| self.alloc.alloc(n));
@@ -143,28 +159,30 @@ impl<'a, 'b> ElementBuilder<'a, 'b> {
         f(ElementBuilder {
             alloc: self.alloc,
             element: &mut element,
+            _marker: Default::default(),
         });
 
         self.element.children.push(Node::Element(element));
     }
 
-    pub fn element<F>(&mut self, tag_name: Name, f: F)
+    pub fn child<F>(&mut self, tag_name: Name, f: F)
     where
-        F: FnOnce(ElementBuilder),
+        F: FnOnce(ElementBuilder<DynamicElement>),
     {
-        self.element_internal(tag_name, None, f);
+        self.child_internal(tag_name, None, f);
     }
 
-    pub fn element_is<F>(&mut self, tag_name: Name, is: CustomElementName, f: F)
+    pub fn child_customized<F>(&mut self, tag_name: Name, is: CustomElementName, f: F)
     where
-        F: FnOnce(ElementBuilder),
+        F: FnOnce(ElementBuilder<DynamicElement>),
     {
-        self.element_internal(tag_name, Some(is), f);
+        self.child_internal(tag_name, Some(is), f);
     }
 
-    pub fn event_sink<T, S>(&mut self, sink: S)
+    pub fn sink_event<T, S>(&mut self, sink: S)
     where
-        T: TypedEvent<CurrentTarget = DynamicElement> + 'static,
+        E: EventTarget,
+        T: TypedEvent<CurrentTarget = E> + 'static,
         S: Sink<T> + 'static,
         S::Error: Debug,
     {
@@ -173,6 +191,17 @@ impl<'a, 'b> ElementBuilder<'a, 'b> {
 
     pub fn element_ref(&mut self, element_ref: ElementRef) {
         self.element.element_refs.push(element_ref);
+    }
+}
+
+impl<'a, 'b, E> child_known_element_ext_seal::Seal for ElementBuilder<'a, 'b, E> {}
+impl<'a, 'b, E> ChildKnownElementExt for ElementBuilder<'a, 'b, E> {
+    fn child_known_element<T, F>(&mut self, f: F)
+    where
+        T: KnownElement + EventTarget,
+        F: FnOnce(ElementBuilder<T>),
+    {
+        self.child_internal(T::TAG_NAME.clone(), None, f)
     }
 }
 
