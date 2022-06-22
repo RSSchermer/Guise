@@ -1,9 +1,11 @@
-use crate::VDom;
-use futures::Stream;
 use std::cell::{Cell, RefCell};
 use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll, Waker};
+
+use futures::Stream;
+
+use crate::VDom;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Gone;

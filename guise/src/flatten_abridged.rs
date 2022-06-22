@@ -1,8 +1,9 @@
+use std::pin::Pin;
+use std::task::{Context, Poll};
+
 use futures::stream::{FusedStream, Map};
 use futures::{ready, Stream, StreamExt as BaseStreamExt};
 use pin_project_lite::pin_project;
-use std::pin::Pin;
-use std::task::{Context, Poll};
 
 pin_project! {
     /// Stream for the [`flatten`](super::StreamExt::flatten) method.

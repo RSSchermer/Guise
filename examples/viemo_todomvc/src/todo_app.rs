@@ -5,7 +5,7 @@ use arwa::spawn_local;
 use arwa::ui::{InputEvent, KeyDownEvent, KeyboardEvent};
 use atomic_counter::AtomicCounter;
 use futures::{Stream, StreamExt};
-use guise::vdom_ext::*;
+use guise::vdom_builder_ext::*;
 use guise::view_model::ViewModel;
 use guise::{AttributesChanged, Listener, VDom};
 use viemo::memo::OwnedMemo;
@@ -201,46 +201,46 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
         let mut vdom = VDom::new();
 
         vdom.child_div(|mut e| {
-            e.attr(name!("class"), "todoapp");
+            e.attr_class("todoapp");
 
             e.child_header(|mut e| {
-                e.attr(name!("class"), "header");
+                e.attr_class("header");
                 e.child_h1(|mut h1| {
                     h1.text("todos");
                 });
                 e.child_input(|mut input| {
-                    input.attr(name!("type"), "text");
-                    input.attr(name!("class"), "new-todo");
-                    input.attr(name!("placeholder"), "What needs to be done?");
-                    input.boolean_attr(name!("autofocus"));
+                    input.attr_type("text");
+                    input.attr_class("new-todo");
+                    input.attr_placeholder("What needs to be done?");
+                    input.attr_autofocus();
                     input.sink_key_down(new_todo_listener.clone());
                 })
             });
 
             if !component.is_empty() {
                 e.child_section(|mut e| {
-                    e.attr(name!("class"), "main");
+                    e.attr_class("main");
 
                     e.child_input(|mut e| {
-                        e.attr(name!("type"), "checkbox");
-                        e.attr(name!("id"), "toggle-all");
-                        e.attr(name!("class"), "toggle-all");
+                        e.attr_type("checkbox");
+                        e.attr_id("toggle-all");
+                        e.attr_class("toggle-all");
 
                         if component.all_completed() {
-                            e.boolean_attr(name!("checked"));
+                            e.attr_checked();
                         }
 
                         e.sink_input(check_toggle_all_listener.clone());
                     });
 
                     e.child_label(|mut e| {
-                        e.attr(name!("for"), "toggle-all");
+                        e.attr_for("toggle-all");
 
                         e.text("Mark all as complete");
                     });
 
                     e.child_ul(|mut e| {
-                        e.attr(name!("class"), "todo-list");
+                        e.attr_class("todo-list");
 
                         for id in component.render_ids() {
                             e.child_customized(
@@ -255,10 +255,10 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
                 });
 
                 e.child_footer(|mut e| {
-                    e.attr(name!("class"), "footer");
+                    e.attr_class("footer");
 
                     e.child_span(|mut e| {
-                        e.attr(name!("class"), "todo-count");
+                        e.attr_class("todo-count");
 
                         e.child_strong(|mut e| {
                             e.text(&component.active_count().to_string());
@@ -274,12 +274,12 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
                     });
 
                     e.child_ul(|mut e| {
-                        e.attr(name!("class"), "filters");
+                        e.attr_class("filters");
 
                         e.child_li(|mut e| {
                             e.child_button(|mut e| {
                                 if component.filter_mode == FilterMode::All {
-                                    e.attr(name!("class"), "selected");
+                                    e.attr_class("selected");
                                 } else {
                                     e.sink_click(change_filter_mode_all_listener.clone());
                                 }
@@ -291,7 +291,7 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
                         e.child_li(|mut e| {
                             e.child_button(|mut e| {
                                 if component.filter_mode == FilterMode::Active {
-                                    e.attr(name!("class"), "selected");
+                                    e.attr_class("selected");
                                 } else {
                                     e.sink_click(change_filter_mode_active_listener.clone());
                                 }
@@ -303,7 +303,7 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
                         e.child_li(|mut e| {
                             e.child_button(|mut e| {
                                 if component.filter_mode == FilterMode::Completed {
-                                    e.attr(name!("class"), "selected");
+                                    e.attr_class("selected");
                                 } else {
                                     e.sink_click(change_filter_mode_completed_listener.clone());
                                 }
@@ -315,7 +315,7 @@ pub fn init(_: &GenericExtendableElement, _: AttributesChanged<()>) -> impl Stre
 
                     if component.any_completed() {
                         e.child_button(|mut e| {
-                            e.attr(name!("class"), "clear-completed");
+                            e.attr_class("clear-completed");
 
                             e.text("Clear completed");
 

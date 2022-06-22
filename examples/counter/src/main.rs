@@ -4,7 +4,7 @@ use arwa::html::{custom_element_name, GenericExtendableElement};
 use arwa::spawn_local;
 use arwa::window::window;
 use futures::StreamExt;
-use guise::vdom_ext::*;
+use guise::vdom_builder_ext::*;
 use guise::view_model::ViewModel;
 use guise::{Listener, VDom};
 

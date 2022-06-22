@@ -1,8 +1,9 @@
-use futures::Sink;
 use std::fmt::Debug;
 use std::mem;
 use std::pin::Pin;
 use std::task::{Context, Poll};
+
+use futures::Sink;
 
 pub(crate) struct RawSink {
     vtable: VTable,

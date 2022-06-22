@@ -1,24 +1,21 @@
-use crate::sink_spawner::SinkSpawner;
-use crate::vdom::{Attribute, Element, Node, VDom};
-use crate::ElementRef;
-use arwa::collection::Sequence;
-use arwa::dom::{
-    CharacterData, ChildNode, Document, DynamicChildNode, DynamicElement, Element as ArwaElement,
-    Name, OwnedNode, ParentNode, Text,
-};
-use arwa::html::{HtmlDocument, HtmlInputElement};
 use std::cmp::min;
 use std::convert::TryFrom;
 
-pub fn patch_dom<E>(container: &E, mut old: VDom, new: &mut VDom)
-where
-    E: ArwaElement + ParentNode + OwnedNode,
-{
-    let document: HtmlDocument = container
-        .owner_document()
-        .try_into()
-        .expect("Guise only supports HTML documents");
+use arwa::collection::Sequence;
+use arwa::dom::{
+    CharacterData, ChildNode, Document, DynamicChildNode, DynamicElement, Element as ArwaElement,
+    Name, ParentNode, Text,
+};
+use arwa::html::{HtmlDocument, HtmlInputElement};
 
+use crate::sink_spawner::SinkSpawner;
+use crate::vdom::{Attribute, Element, Node, VDom};
+use crate::ElementRef;
+
+pub fn patch_dom<E>(document: &HtmlDocument, container: &E, mut old: VDom, new: &mut VDom)
+where
+    E: ParentNode,
+{
     old.with_nodes_mut(|old_nodes| {
         new.with_nodes_mut(|new_nodes| {
             patch_children(&document, container, old_nodes, new_nodes);
@@ -64,7 +61,7 @@ fn patch_node(
 
 fn patch_children<E>(document: &HtmlDocument, parent: &E, old: &mut [Node], new: &mut [Node])
 where
-    E: ArwaElement + ParentNode,
+    E: ParentNode,
 {
     let children = parent.child_nodes();
     let overlap = min(old.len(), new.len());

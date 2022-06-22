@@ -1,7 +1,8 @@
-use futures::Sink;
 use std::marker;
 use std::pin::Pin;
 use std::task::{Context, Poll};
+
+use futures::Sink;
 
 pub struct Listener<T, F> {
     f: F,

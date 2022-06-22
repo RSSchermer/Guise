@@ -1,4 +1,9 @@
-use crate::raw_sink::RawSink;
+use std::fmt::Debug;
+use std::future::Future;
+use std::mem;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+
 use arwa::dom::DynamicElement;
 use arwa::event::{EventTarget, OnEvent, TypedEvent};
 use arwa::spawn_local;
@@ -6,11 +11,8 @@ use futures::future::AbortHandle;
 use futures::ready;
 use futures::stream::Abortable;
 use futures::{Sink, Stream};
-use std::fmt::Debug;
-use std::future::Future;
-use std::mem;
-use std::pin::Pin;
-use std::task::{Context, Poll};
+
+use crate::raw_sink::RawSink;
 
 enum State {
     Unused(RawSink),

@@ -1,13 +1,13 @@
 use std::str::FromStr;
 
-use arwa::dom::{name, SelectionDirection};
+use arwa::dom::SelectionDirection;
 use arwa::event::Event;
 use arwa::html::{HtmlElement, HtmlInputElement, HtmlLiElement};
 use arwa::spawn_local;
 use arwa::ui::{FocusOutEvent, InputEvent, KeyDownEvent, KeyboardEvent};
 use futures::{Stream, StreamExt as BaseStreamExt};
 use guise::flatten_abridged::StreamExt as FlattenAbridgedStreamExt;
-use guise::vdom_ext::*;
+use guise::vdom_builder_ext::*;
 use guise::view_model::ViewModel;
 use guise::{AttributesChanged, ElementRef, Listener, VDom};
 use viemo::memo::OptionCellMemo;
@@ -150,14 +150,14 @@ pub fn init(
                     class.push_str(" editing");
                 }
 
-                e.attr(name!("class"), &class);
+                e.attr_class(&class);
 
                 if component.edit_mode {
                     e.child_input(|mut e| {
-                        e.attr(name!("type"), "text");
-                        e.attr(name!("class"), "edit");
-                        e.boolean_attr(name!("autofocus"));
-                        e.attr(name!("value"), &component.note);
+                        e.attr_type("text");
+                        e.attr_class("edit");
+                        e.attr_autofocus();
+                        e.attr_value(&component.note);
 
                         e.sink_key_down(save_enter_listener.clone());
                         e.sink_focus_out(save_blur_listener.clone());
@@ -170,14 +170,14 @@ pub fn init(
                     });
                 } else {
                     e.child_div(|mut e| {
-                        e.attr(name!("class"), "view");
+                        e.attr_class("view");
 
                         e.child_input(|mut e| {
-                            e.attr(name!("type"), "checkbox");
-                            e.attr(name!("class"), "toggle");
+                            e.attr_type("checkbox");
+                            e.attr_class("toggle");
 
                             if component.complete {
-                                e.boolean_attr(name!("checked"));
+                                e.attr_checked();
                             }
 
                             e.sink_input(check_complete_listener.clone());
@@ -190,7 +190,7 @@ pub fn init(
                         });
 
                         e.child_button(|mut e| {
-                            e.attr(name!("class"), "destroy");
+                            e.attr_class("destroy");
 
                             e.sink_click(destroy_listener.clone());
                         });

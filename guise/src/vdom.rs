@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::marker;
 
 use arwa::dom::{DynamicElement, Name};
 use arwa::event::{EventTarget, TypedEvent};
@@ -9,11 +10,10 @@ use futures::Sink;
 use ouroboros::self_referencing;
 
 use crate::sink_spawner::SinkSpawner;
-use crate::vdom_ext::{
+use crate::vdom_builder_ext::{
     child_known_element_ext_seal, sink_ui_event_ext_seal, ChildKnownElementExt, SinkUIEventExt,
 };
 use crate::ElementRef;
-use std::marker;
 
 pub struct VDom {
     pub(crate) internal: VDomInternal,
