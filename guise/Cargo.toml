@@ -13,3 +13,4 @@ guise_macro = { version = "0.1.0", path = "../guise_macro" }
 ouroboros = "0.15.0"
 pin-project-lite = "0.2"
 unicase = "2.6.0"
+wasm-bindgen = "0.2.81"

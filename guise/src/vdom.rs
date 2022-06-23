@@ -14,6 +14,7 @@ use crate::vdom_builder_ext::{
     child_known_element_ext_seal, sink_ui_event_ext_seal, ChildKnownElementExt, SinkUIEventExt,
 };
 use crate::ElementRef;
+use crate::element_ref::RawElementRef;
 
 pub struct VDom {
     pub(crate) internal: VDomInternal,
@@ -191,8 +192,8 @@ impl<'a, 'b, E> ElementBuilder<'a, 'b, E> {
         self.element.sink_spawners.push(SinkSpawner::new(sink));
     }
 
-    pub fn element_ref(&mut self, element_ref: ElementRef) {
-        self.element.element_refs.push(element_ref);
+    pub fn element_ref(&mut self, element_ref: ElementRef<E>) {
+        self.element.element_refs.push(element_ref.into_raw());
     }
 }
 
@@ -231,7 +232,7 @@ pub(crate) struct Element<'a> {
     attributes: BumpVec<'a, Attribute<'a>>,
     children: BumpVec<'a, Node<'a>>,
     sink_spawners: BumpVec<'a, SinkSpawner>,
-    element_refs: BumpVec<'a, ElementRef>,
+    element_refs: BumpVec<'a, RawElementRef>,
 }
 
 impl<'a> Element<'a> {
@@ -255,7 +256,7 @@ impl<'a> Element<'a> {
         &mut self.sink_spawners
     }
 
-    pub(crate) fn element_refs_mut(&mut self) -> &mut [ElementRef] {
+    pub(crate) fn element_refs_mut(&mut self) -> &mut [RawElementRef] {
         &mut self.element_refs
     }
 }

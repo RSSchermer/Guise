@@ -27,6 +27,7 @@ use arwa::html::{
 use arwa::spawn_local;
 use futures::stream::{abortable, AbortHandle};
 use futures::{Stream, StreamExt};
+use wasm_bindgen::{JsCast, JsValue};
 
 use crate::patch_dom::patch_dom;
 
@@ -81,7 +82,7 @@ where
 
 pub fn register<E, A, S, F>(registry: &CustomElementRegistry, name: &CustomElementName, mut init: F)
 where
-    E: Element + ParentNode + OwnedNode + ExtendableElement + Clone + 'static,
+    E: Element + ParentNode + OwnedNode + ExtendableElement + Clone + AsRef<JsValue> + 'static,
     A: Attributes + 'static,
     S: Stream<Item = VDom> + Unpin + 'static,
     F: FnMut(&E, AttributesChanged<A>) -> S + 'static,
@@ -124,7 +125,9 @@ where
                 patch_dom(&document, element.deref(), old, &mut new);
 
                 if let Some(on_rendered) = new.on_rendered.take() {
-                    on_rendered(&element.clone().into());
+                    let js_ref: &JsValue = element.as_ref();
+
+                    on_rendered(js_ref.unchecked_ref());
                 }
 
                 // Note: this drops the previous vdom (if any), which should abort all old sink
@@ -145,7 +148,7 @@ pub fn register_with_shadow_root<E, A, S, F>(
     name: &CustomElementName,
     mut init: F,
 ) where
-    E: ShadowHost + Element + ParentNode + OwnedNode + ExtendableElement + Clone + 'static,
+    E: ShadowHost + Element + ParentNode + OwnedNode + ExtendableElement + Clone + AsRef<JsValue> + 'static,
     A: Attributes + 'static,
     S: Stream<Item = VDom> + Unpin + 'static,
     F: FnMut(&E, AttributesChanged<A>) -> S + 'static,
@@ -193,7 +196,9 @@ pub fn register_with_shadow_root<E, A, S, F>(
                 patch_dom(&document, &shadow_root, old, &mut new);
 
                 if let Some(on_rendered) = new.on_rendered.take() {
-                    on_rendered(&element.clone().into());
+                    let js_ref: &JsValue = element.as_ref();
+
+                    on_rendered(js_ref.unchecked_ref());
                 }
 
                 // Note: this drops the previous vdom (if any), which should abort all old sink

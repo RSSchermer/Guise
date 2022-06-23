@@ -205,8 +205,7 @@ pub fn init(
                 let edit_ref = edit_ref.clone();
 
                 move |_| {
-                    if let Some(element) = edit_ref.get() {
-                        let input: HtmlInputElement = element.clone().try_into().unwrap();
+                    if let Some(input) = edit_ref.get() {
                         let end = input.value().len() as u32;
 
                         input.set_selection(end..end, SelectionDirection::Forward);

@@ -10,7 +10,7 @@ use arwa::html::{HtmlDocument, HtmlInputElement};
 
 use crate::sink_spawner::SinkSpawner;
 use crate::vdom::{Attribute, Element, Node, VDom};
-use crate::ElementRef;
+use crate::element_ref::RawElementRef;
 
 pub fn patch_dom<E>(document: &HtmlDocument, container: &E, mut old: VDom, new: &mut VDom)
 where
@@ -206,7 +206,7 @@ fn spawn_sinks(element: &DynamicElement, spawners: &mut [SinkSpawner]) {
     }
 }
 
-fn set_ref_anchors(element: &DynamicElement, element_refs: &mut [ElementRef]) {
+fn set_ref_anchors(element: &DynamicElement, element_refs: &mut [RawElementRef]) {
     for element_ref in element_refs {
         element_ref.set_element(element.clone());
     }
